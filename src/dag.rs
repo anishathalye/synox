@@ -133,7 +133,7 @@ impl Dag {
         Self::learn(paired, &graph).top_ranked_expression(&graph)
     }
 
-    fn learn(paired: &Vec<(Vec<String>, String)>, graph: &InputDataGraph) -> Self {
+    pub fn learn(paired: &Vec<(Vec<String>, String)>, graph: &InputDataGraph) -> Self {
         paired
             .iter()
             .enumerate()
@@ -147,7 +147,7 @@ impl Dag {
             .unwrap()
     }
 
-    fn top_ranked_expression(&self, graph: &InputDataGraph) -> Option<impl StringProgram> {
+    pub fn top_ranked_expression(&self, graph: &InputDataGraph) -> Option<impl StringProgram> {
         let distances = graph.distances();
         let ranks = graph.rank_nodes(&distances);
         let mut best_by_edge: HashMap<Edge, (usize, SubstringExpression)> = HashMap::new();
