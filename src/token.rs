@@ -17,6 +17,8 @@ pub enum Token {
     LowercaseWithSpaces,
     AlphabetsWithSpaces,
     Literal(String),
+    // custom tokens (not from BlinkFill paper)
+    NotDot, // useful for filename-based things, to match the name/extension
 }
 
 use Token::*;
@@ -40,9 +42,30 @@ pub const ALL_RE_TOKENS: &'static [Token] = &[
     CapsWithSpaces,
     LowercaseWithSpaces,
     AlphabetsWithSpaces,
+    NotDot,
 ];
 
 impl Token {
+    pub fn weight(&self) -> usize {
+        match self {
+            ProperCase => 70,
+            Caps => 70,
+            Lowercase => 70,
+            Digits => 70,
+            Alphabets => 79,
+            Alphanumeric => 70,
+            Whitespace => 80,
+            Start => 100,
+            End => 100,
+            ProperCaseWithSpaces => 60,
+            CapsWithSpaces => 60,
+            LowercaseWithSpaces => 60,
+            AlphabetsWithSpaces => 60,
+            Literal(s) => s.len(),
+            NotDot => 90,
+        }
+    }
+
     pub fn all_matches(&self, s: &str) -> Vec<Span> {
         let mut matches = Vec::new();
         let mut offset = 0;
@@ -174,6 +197,12 @@ impl Token {
             }
             Start | End | Literal(_) => {
                 panic!("Token type {:?} does not support regex", self)
+            }
+            NotDot => {
+                lazy_static! {
+                    static ref RE: Regex = Regex::new(r"[^.]+").unwrap();
+                }
+                &RE
             }
         }
     }

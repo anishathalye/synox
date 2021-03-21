@@ -56,6 +56,13 @@ pub struct StringIndex(pub usize);
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Occurrence(pub isize);
 
+impl Occurrence {
+    pub fn weight(&self) -> isize {
+        // prefer occurrences closer to ends
+        -self.0.abs()
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Position {
     Match(Token, Occurrence, Direction),

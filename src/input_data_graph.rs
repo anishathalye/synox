@@ -23,7 +23,6 @@ type Edge = (Node, Node);
 pub struct InputDataGraph {
     pub labels: HashMap<Node, HashMap<Id, StringIndex>>,
     pub tokens: HashMap<Edge, HashSet<(Token, Occurrence)>>,
-    num_rows: usize,
 }
 
 impl InputDataGraph {
@@ -51,7 +50,6 @@ impl InputDataGraph {
         Self {
             labels: HashMap::new(),
             tokens: HashMap::new(),
-            num_rows: 0,
         }
     }
 
@@ -121,11 +119,7 @@ impl InputDataGraph {
             }
         }
 
-        Self {
-            labels,
-            tokens,
-            num_rows: 1,
-        }
+        Self { labels, tokens }
     }
 
     fn intersection(&self, other: &Self) -> Self {
@@ -168,17 +162,12 @@ impl InputDataGraph {
             }
         }
 
-        Self {
-            labels,
-            tokens,
-            num_rows: self.num_rows + other.num_rows,
-        }
+        Self { labels, tokens }
     }
 
     fn union(graphs: impl Iterator<Item = Self>) -> Self {
         let mut labels = HashMap::new();
         let mut tokens = HashMap::new();
-        let mut num_rows = 0;
 
         let mut curr = 0;
         for graph in graphs {
@@ -198,14 +187,9 @@ impl InputDataGraph {
             for ((v1, v2), t) in graph.tokens {
                 tokens.insert((number(v1), number(v2)), t);
             }
-            num_rows = graph.num_rows;
         }
 
-        Self {
-            labels,
-            tokens,
-            num_rows,
-        }
+        Self { labels, tokens }
     }
 
     pub fn distances(&self) -> HashMap<Edge, usize> {
@@ -222,10 +206,6 @@ impl InputDataGraph {
             }
         }
         result
-    }
-
-    pub fn num_rows(&self) -> usize {
-        self.num_rows
     }
 
     pub fn rank_nodes(&self, distances: &HashMap<Edge, usize>) -> HashMap<Node, usize> {
@@ -322,12 +302,9 @@ mod tests {
         let g2 = InputDataGraph::from_str("23 g", Id::new(1, 0));
         let graph = g1.intersection(&g2);
         assert_eq!(graph.nodes().len(), 6);
-        assert_eq!(graph.edges().len(), 5);
+        assert_eq!(graph.edges().len(), 6);
         let token_lengths: HashSet<_> = graph.tokens.values().map(|v| v.len()).collect();
-        assert_eq!(
-            token_lengths,
-            vec![1, 4, 4, 10, 1].iter().cloned().collect()
-        );
+        assert_eq!(token_lengths, vec![4, 1, 10, 2].iter().cloned().collect());
         let toks: HashSet<_> = vec![
             (Token::Literal(String::from(" ")), Occurrence(1)),
             (Token::Literal(String::from(" ")), Occurrence(-1)),
@@ -355,7 +332,7 @@ mod tests {
         let strs = vec![vec![String::from("1 lb")], vec![String::from("23 g")]];
         let graph = InputDataGraph::new(&strs);
         assert_eq!(graph.nodes().len(), 6);
-        assert_eq!(graph.edges().len(), 5);
+        assert_eq!(graph.edges().len(), 6);
     }
 
     #[test]
@@ -366,6 +343,6 @@ mod tests {
         ];
         let graph = InputDataGraph::new(&strs);
         assert_eq!(graph.nodes().len(), 7 + 6);
-        assert_eq!(graph.edges().len(), 12 + 5);
+        assert_eq!(graph.edges().len(), 12 + 6);
     }
 }

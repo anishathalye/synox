@@ -18,6 +18,7 @@ pub struct Dag {
     start: Node,
     finish: Node,
     substrings: HashMap<Edge, Vec<SubstringExpressionSet>>,
+    num_examples: usize,
 }
 
 impl Dag {
@@ -75,6 +76,7 @@ impl Dag {
             start: 0,
             finish: n,
             substrings,
+            num_examples: 1,
         }
     }
 
@@ -113,6 +115,7 @@ impl Dag {
             start: number(self.start, other.start),
             finish: number(self.finish, other.finish),
             substrings,
+            num_examples: self.num_examples + other.num_examples,
         }
     }
 
@@ -151,7 +154,6 @@ impl Dag {
         // compute distances for edges
         let idg_adj = graph::adjacency_map(graph.edges());
         let idg_inv = graph::invert_adjacency_map(&idg_adj);
-        let rows = graph.num_rows();
         for (edge, expr_set_set) in &self.substrings {
             let mut best: Option<SubstringExpression> = None;
             let mut best_score = 0;
@@ -189,15 +191,23 @@ impl Dag {
                                 ConstantPosition(k) => Position::ConstantPosition(*k),
                                 GraphNode(v) => {
                                     // check in-edges
+                                    let mut best: Option<Position> = None;
+                                    let mut best_weight = (0, 0);
+                                    // weight is (token.weight, -abs(occurence)), to favor certain
+                                    // tokens, and then matches near the start or end
                                     if let Some(vss) = idg_inv.get(v) {
                                         for vs in vss {
                                             if let Some(toks) = graph.tokens.get(&(*vs, *v)) {
                                                 for (tok, occ) in toks {
-                                                    return Position::Match(
-                                                        tok.clone(),
-                                                        *occ,
-                                                        Direction::End,
-                                                    );
+                                                    let weight = (tok.weight(), occ.weight());
+                                                    if best == None || weight > best_weight {
+                                                        best_weight = weight;
+                                                        best = Some(Position::Match(
+                                                            tok.clone(),
+                                                            *occ,
+                                                            Direction::End,
+                                                        ));
+                                                    }
                                                 }
                                             }
                                         }
@@ -207,18 +217,22 @@ impl Dag {
                                         for vf in vfs {
                                             if let Some(toks) = graph.tokens.get(&(*v, *vf)) {
                                                 for (tok, occ) in toks {
-                                                    return Position::Match(
-                                                        tok.clone(),
-                                                        *occ,
-                                                        Direction::Start,
-                                                    );
+                                                    let weight = (tok.weight(), occ.weight());
+                                                    if best == None || weight > best_weight {
+                                                        best_weight = weight;
+                                                        best = Some(Position::Match(
+                                                            tok.clone(),
+                                                            *occ,
+                                                            Direction::Start,
+                                                        ));
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                     // we should never get here; if we did, it means our
                                     // PositionSet was invalid
-                                    panic!("top_ranked_expression: no tokens for graph node");
+                                    best.expect("top_ranked_expression: no tokens for graph node")
                                 }
                             }
                         };
@@ -232,43 +246,56 @@ impl Dag {
                             (ConstantPosition(k), GraphNode(v)) => {
                                 let k = k.0 as usize;
                                 let mut sum = 0;
-                                for (_, si) in &graph.labels[v] {
+                                for (id, si) in &graph.labels[v] {
                                     if si.0 > k {
-                                        sum += si.0 - k;
+                                        // NOTE the paper isn't super clear about how to measure
+                                        // the length of token-based matches (it depends on which
+                                        // string we are matching); we could do it based on all the
+                                        // strings (including ones we don't have input-output
+                                        // examples for), or we could do it just for the ones
+                                        // included in the examples; doing the former might make more
+                                        // sense, so that is what we do here
+                                        if id.row < self.num_examples {
+                                            sum += si.0 - k;
+                                        }
                                     } else {
                                         bad = true;
                                         break;
                                     }
                                 }
-                                len = sum / rows;
+                                len = sum / self.num_examples;
                             }
                             (GraphNode(v), ConstantPosition(k)) => {
                                 // similar to the above case
                                 // note: difference direction is opposite the above case
                                 let k = k.0 as usize;
                                 let mut sum = 0;
-                                for (_, si) in &graph.labels[v] {
+                                for (id, si) in &graph.labels[v] {
                                     if k > si.0 {
-                                        sum += k - si.0;
+                                        if id.row < self.num_examples {
+                                            sum += k - si.0;
+                                        }
                                     } else {
                                         bad = true;
                                         break;
                                     }
                                 }
-                                len = sum / rows;
+                                len = sum / self.num_examples;
                             }
                             (GraphNode(v1), GraphNode(v2)) => {
                                 let mut sum = 0;
                                 for (id, si1) in &graph.labels[v1] {
                                     let si2 = graph.labels[v2][id];
                                     if si2.0 > si1.0 {
-                                        sum += si2.0 - si1.0;
+                                        if id.row < self.num_examples {
+                                            sum += si2.0 - si1.0;
+                                        }
                                     } else {
                                         bad = true;
                                         break;
                                     }
                                 }
-                                len = sum / rows;
+                                len = sum / self.num_examples;
                             }
                         }
                         expr = if !bad {
@@ -679,14 +706,11 @@ mod tests {
             vec![String::from("RD392.HEIC")],
         ];
         let graph = InputDataGraph::new(&strs);
-        let examples = vec![
-            (strs[0].clone(), String::from("IMG_3246")),
-            (strs[1].clone(), String::from("GOPR0411")),
-        ];
+        let examples = vec![(strs[0].clone(), String::from("IMG_3246"))];
         let dag = Dag::learn(&examples, &graph);
         let best = dag.top_ranked_expression(&graph).unwrap();
-        let expected = vec!["DSC_0324", "DSC0324", "RD392"];
-        for (i, s) in strs[2..].iter().enumerate() {
+        let expected = vec!["GOPR0411", "DSC_0324", "DSC0324", "RD392"];
+        for (i, s) in strs[1..].iter().enumerate() {
             assert_eq!(best.run(s).unwrap(), expected[i]);
         }
     }
