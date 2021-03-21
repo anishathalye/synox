@@ -239,15 +239,17 @@ impl InputDataGraph {
         let inv = graph::invert_adjacency_map(&adj);
         let mut topo = graph::topological_sort(&adj);
         let empty: HashSet<Node> = HashSet::new();
+        // NOTE this looks different from the paper, but that is because our topological sort order
+        // is the reverse of the order assumed in Figure 16
         for v in &topo {
-            for vi in adj.get(&v).unwrap_or(&empty) {
-                v_out.insert(*v, cmp::max(v_out[&v], v_out[&vi] + distances[&(*v, *vi)]));
+            for vi in inv.get(&v).unwrap_or(&empty) {
+                v_in.insert(*v, cmp::max(v_in[&v], v_in[&vi] + distances[&(*vi, *v)]));
             }
         }
         topo.reverse();
         for v in &topo {
-            for vi in inv.get(&v).unwrap_or(&empty) {
-                v_in.insert(*v, cmp::max(v_in[&v], v_in[&vi] + distances[&(*vi, *v)]));
+            for vi in adj.get(&v).unwrap_or(&empty) {
+                v_out.insert(*v, cmp::max(v_out[&v], v_out[&vi] + distances[&(*v, *vi)]));
             }
         }
         // total the score in v_out (instead of allocating a separate hash map)
