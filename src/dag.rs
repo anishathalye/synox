@@ -119,20 +119,6 @@ impl Dag {
         }
     }
 
-    fn learn_program_full(
-        paired: &Vec<(Vec<String>, String)>,
-        unpaired: &Vec<Vec<String>>,
-    ) -> Option<impl StringProgram> {
-        let all_unpaired: Vec<Vec<String>> = paired
-            .iter()
-            .map(|(i, _)| i)
-            .chain(unpaired.iter())
-            .cloned()
-            .collect();
-        let graph = InputDataGraph::new(&all_unpaired);
-        Self::learn(paired, &graph).top_ranked_expression(&graph)
-    }
-
     pub fn learn(paired: &Vec<(Vec<String>, String)>, graph: &InputDataGraph) -> Self {
         paired
             .iter()
