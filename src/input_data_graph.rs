@@ -199,7 +199,13 @@ impl InputDataGraph {
                 let dist = self.labels[v1]
                     .iter()
                     .map(|(id, index1)| {
-                        ((self.labels[v2][id].0 as isize) - (index1.0 as isize)).abs() as usize
+                        // we only care about nodes corresponding to the same column, otherwise their
+                        // distance is not going to be used; if labels[v2] doesn't contain id, we
+                        // just use index1 (it doesn't matter what we use, the result is not going
+                        // to be used
+                        ((self.labels[v2].get(id).unwrap_or(index1).0 as isize)
+                            - (index1.0 as isize))
+                            .abs() as usize
                     })
                     .sum();
                 result.insert((*v1, *v2), dist);

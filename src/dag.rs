@@ -714,4 +714,26 @@ mod tests {
             assert_eq!(best.run(s).unwrap(), expected[i]);
         }
     }
+
+    #[test]
+    fn learn_multi_column() {
+        let strs = vec![
+            vec![String::from("1"), String::from("IMG_3246.JPG")],
+            vec![String::from("2"), String::from("GOPR0411.MP4")],
+            vec![String::from("3"), String::from("DSC_0324.jpg")],
+            vec![String::from("4"), String::from("DSC0324.jpg")],
+            vec![String::from("5"), String::from("RD392.HEIC")],
+        ];
+        let graph = InputDataGraph::new(&strs);
+        let examples = vec![
+            (strs[0].clone(), String::from("1_IMG_3246")),
+            (strs[1].clone(), String::from("2_GOPR0411")),
+        ];
+        let dag = Dag::learn(&examples, &graph);
+        let best = dag.top_ranked_expression(&graph).unwrap();
+        let expected = vec!["3_DSC_0324", "4_DSC0324", "5_RD392"];
+        for (i, s) in strs[2..].iter().enumerate() {
+            assert_eq!(best.run(s).unwrap(), expected[i]);
+        }
+    }
 }
