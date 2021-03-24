@@ -1,7 +1,7 @@
 use crate::token::Token;
 use std::fmt::Debug;
 
-type State<'a> = &'a Vec<String>;
+type State<'a> = &'a[String];
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct ColumnIndex(pub usize);

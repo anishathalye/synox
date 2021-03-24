@@ -27,7 +27,7 @@ pub struct InputDataGraph {
 
 impl InputDataGraph {
     // Requires strs to be non-jagged
-    pub fn new(strs: &Vec<Vec<String>>) -> Self {
+    pub fn new(strs: &[Vec<String>]) -> Self {
         let rows = strs.len();
         if rows == 0 {
             return Self::empty();
@@ -88,7 +88,7 @@ impl InputDataGraph {
             for (i, span) in matches.iter().enumerate() {
                 let set = tokens
                     .entry((span.start, span.end))
-                    .or_insert(HashSet::new());
+                    .or_insert_with(HashSet::new);
                 let i = i as isize;
                 set.insert((token.clone(), Occurrence(i + 1)));
                 set.insert((token.clone(), Occurrence(i - n)));
@@ -109,7 +109,7 @@ impl InputDataGraph {
                 let lit_tok_matches_n = lit_tok_matches.len() as isize;
                 for (span_idx, span) in lit_tok_matches.iter().enumerate() {
                     if span.start == i && span.end == j {
-                        let set = tokens.entry((i, j)).or_insert(HashSet::new());
+                        let set = tokens.entry((i, j)).or_insert_with(HashSet::new);
                         let span_idx = span_idx as isize;
                         set.insert((lit_tok.clone(), Occurrence(span_idx + 1)));
                         set.insert((lit_tok.clone(), Occurrence(span_idx - lit_tok_matches_n)));

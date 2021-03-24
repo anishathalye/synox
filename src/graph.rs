@@ -11,7 +11,7 @@ where
 {
     let mut adj = HashMap::new();
     for (v1, v2) in edges {
-        adj.entry(*v1).or_insert(HashSet::new()).insert(*v2);
+        adj.entry(*v1).or_insert_with(HashSet::new).insert(*v2);
     }
     adj
 }
@@ -23,7 +23,7 @@ where
     let mut inv = HashMap::new();
     for (v1, vs) in adj {
         for v2 in vs {
-            inv.entry(*v2).or_insert(HashSet::new()).insert(*v1);
+            inv.entry(*v2).or_insert_with(HashSet::new).insert(*v1);
         }
     }
     inv

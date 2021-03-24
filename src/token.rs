@@ -30,7 +30,7 @@ pub struct Span {
     pub end: usize,
 }
 
-pub const ALL_RE_TOKENS: &'static [Token] = &[
+pub const ALL_RE_TOKENS: &[Token] = &[
     ProperCase,
     Caps,
     Lowercase,
@@ -98,7 +98,7 @@ impl Token {
                                 start: offset + start + 1,
                                 end: offset + end + 1,
                             });
-                            offset = offset + end;
+                            offset += end;
                         }
                     }
                 }
@@ -117,7 +117,7 @@ impl Token {
                                 start: offset + mat.start() + 1,
                                 end: offset + mat.end() + 1,
                             });
-                            offset = offset + mat.end();
+                            offset += mat.end();
                         }
                     }
                 }

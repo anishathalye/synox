@@ -4,7 +4,6 @@ use crate::language::{
     ColumnIndex, Direction, Occurrence, Position, StringExpression, StringIndex, StringProgram,
     SubstringExpression,
 };
-use crate::token::Token;
 use std::collections::{HashMap, HashSet};
 
 const EPSILON: usize = 1;
@@ -35,7 +34,7 @@ impl Dag {
         self.substrings.keys()
     }
 
-    fn new(input: &Vec<String>, output: &str, graph: &InputDataGraph, row: usize) -> Self {
+    fn new(input: &[String], output: &str, graph: &InputDataGraph, row: usize) -> Self {
         let mut substrings = HashMap::new();
         let n = output.len();
 
@@ -119,7 +118,7 @@ impl Dag {
         }
     }
 
-    pub fn learn(paired: &Vec<(Vec<String>, String)>, graph: &InputDataGraph) -> Self {
+    pub fn learn(paired: &[(Vec<String>, String)], graph: &InputDataGraph) -> Self {
         paired
             .iter()
             .enumerate()
@@ -388,7 +387,7 @@ impl SubstringExpressionSet {
                 if p_r.is_empty() {
                     return None;
                 }
-                Some(SubstringSet(c1.clone(), p_l, p_r))
+                Some(SubstringSet(*c1, p_l, p_r))
             }
             _ => None,
         }
@@ -432,6 +431,7 @@ impl PositionSet {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::token::Token;
 
     #[test]
     fn generate_substring_set() {
