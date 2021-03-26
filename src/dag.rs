@@ -21,19 +21,6 @@ pub struct Dag {
 }
 
 impl Dag {
-    fn nodes(&self) -> impl ExactSizeIterator<Item = &Node> + '_ {
-        let unique_keys: HashSet<_> = self
-            .substrings
-            .keys()
-            .flat_map(|edge| vec![&edge.0, &edge.1].into_iter())
-            .collect();
-        unique_keys.into_iter()
-    }
-
-    fn edges(&self) -> impl ExactSizeIterator<Item = &Edge> + '_ {
-        self.substrings.keys()
-    }
-
     fn new(input: &[String], output: &str, graph: &InputDataGraph, row: usize) -> Self {
         let mut substrings = HashMap::new();
         let n = output.len();
@@ -350,6 +337,7 @@ impl SubstringExpressionSet {
         SubstringSet(ColumnIndex(id.col), v_l, v_r)
     }
 
+    #[cfg(test)]
     fn denote(&self, graph: &InputDataGraph) -> HashSet<SubstringExpression> {
         let mut set: HashSet<SubstringExpression> = HashSet::new();
         match self {
@@ -403,6 +391,7 @@ enum PositionSet {
 use PositionSet::*;
 
 impl PositionSet {
+    #[cfg(test)]
     fn denote(&self, graph: &InputDataGraph) -> HashSet<Position> {
         let mut set: HashSet<Position> = HashSet::new();
         match self {
@@ -551,7 +540,6 @@ mod tests {
         ];
         let graph = InputDataGraph::new(&strs);
         let dag = Dag::new(&strs[0], "India", &graph, 0);
-        assert_eq!(dag.nodes().len(), 6);
         // some spot checks
         assert!(all_for(&dag, &graph, 0, 3)
             .contains(&SubstringExpression::ConstantString(String::from("Ind"))));

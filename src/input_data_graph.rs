@@ -11,6 +11,7 @@ pub struct Id {
 }
 
 impl Id {
+    #[cfg(test)]
     pub fn new(row: usize, col: usize) -> Id {
         Id { row, col }
     }
