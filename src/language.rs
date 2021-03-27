@@ -3,14 +3,14 @@ use std::fmt::Debug;
 
 type State<'a> = &'a [String];
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub struct ColumnIndex(pub usize);
 
 pub trait StringProgram: Debug {
     fn run(&self, row: State) -> Option<String>;
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct StringExpression(pub Vec<SubstringExpression>);
 
 impl StringProgram for StringExpression {
@@ -26,7 +26,7 @@ impl StringProgram for StringExpression {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub enum SubstringExpression {
     ConstantString(String),
     Substring(ColumnIndex, Position, Position),
@@ -50,10 +50,10 @@ impl SubstringExpression {
 }
 
 // a one-based string index
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub struct StringIndex(pub usize);
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub struct Occurrence(pub isize);
 
 impl Occurrence {
@@ -63,7 +63,7 @@ impl Occurrence {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 pub enum Position {
     Match(Token, Occurrence, Direction),
     ConstantPosition(Occurrence),
@@ -101,7 +101,7 @@ impl Position {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub enum Direction {
     Start,
     End,

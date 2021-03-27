@@ -4,7 +4,7 @@ use crate::language::{
     ColumnIndex, Direction, Occurrence, Position, StringExpression, StringIndex, StringProgram,
     SubstringExpression,
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 const EPSILON: usize = 1;
 const KAPPA: usize = 15; // BlinkFill Section 7.3
@@ -16,13 +16,13 @@ type Edge = (Node, Node);
 pub struct Dag {
     start: Node,
     finish: Node,
-    substrings: HashMap<Edge, Vec<SubstringExpressionSet>>,
+    substrings: BTreeMap<Edge, Vec<SubstringExpressionSet>>,
     num_examples: usize,
 }
 
 impl Dag {
     fn new(input: &[String], output: &str, graph: &InputDataGraph, row: usize) -> Self {
-        let mut substrings = HashMap::new();
+        let mut substrings = BTreeMap::new();
         let n = output.len();
 
         for i in 0..n {
@@ -78,7 +78,7 @@ impl Dag {
             })
         };
 
-        let mut substrings = HashMap::new();
+        let mut substrings = BTreeMap::new();
         for ((v1s, v1f), s1) in &self.substrings {
             for ((v2s, v2f), s2) in &other.substrings {
                 let vs = number(*v1s, *v2s);
@@ -122,7 +122,7 @@ impl Dag {
     pub fn top_ranked_expression(&self, graph: &InputDataGraph) -> Option<impl StringProgram> {
         let distances = graph.distances();
         let ranks = graph.rank_nodes(&distances);
-        let mut best_by_edge: HashMap<Edge, (usize, SubstringExpression)> = HashMap::new();
+        let mut best_by_edge: BTreeMap<Edge, (usize, SubstringExpression)> = BTreeMap::new();
         // compute distances for edges
         let idg_adj = graph::adjacency_map(graph.edges());
         let idg_inv = graph::invert_adjacency_map(&idg_adj);
@@ -310,7 +310,7 @@ impl Dag {
 #[derive(Debug, PartialEq, Eq)]
 enum SubstringExpressionSet {
     ConstantString(String),
-    SubstringSet(ColumnIndex, HashSet<PositionSet>, HashSet<PositionSet>),
+    SubstringSet(ColumnIndex, BTreeSet<PositionSet>, BTreeSet<PositionSet>),
 }
 
 use SubstringExpressionSet::*;
@@ -323,8 +323,8 @@ impl SubstringExpressionSet {
         r: StringIndex,
         graph: &InputDataGraph,
     ) -> Self {
-        let mut v_l = HashSet::new();
-        let mut v_r = HashSet::new();
+        let mut v_l = BTreeSet::new();
+        let mut v_r = BTreeSet::new();
         for (v, labels) in &graph.labels {
             if labels.get(&id) == Some(&l) {
                 v_l.insert(GraphNode(*v));
@@ -338,8 +338,8 @@ impl SubstringExpressionSet {
     }
 
     #[cfg(test)]
-    fn denote(&self, graph: &InputDataGraph) -> HashSet<SubstringExpression> {
-        let mut set: HashSet<SubstringExpression> = HashSet::new();
+    fn denote(&self, graph: &InputDataGraph) -> BTreeSet<SubstringExpression> {
+        let mut set: BTreeSet<SubstringExpression> = BTreeSet::new();
         match self {
             ConstantString(s) => {
                 set.insert(SubstringExpression::ConstantString(s.clone()));
@@ -367,11 +367,11 @@ impl SubstringExpressionSet {
             (SubstringSet(c1, p1_l, p1_r), SubstringSet(c2, p2_l, p2_r)) if c1 == c2 => {
                 // return None if either intersection is empty; this is not necessary for
                 // correctness but it's a performance optimization
-                let p_l: HashSet<_> = p1_l.intersection(p2_l).cloned().collect();
+                let p_l: BTreeSet<_> = p1_l.intersection(p2_l).cloned().collect();
                 if p_l.is_empty() {
                     return None;
                 }
-                let p_r: HashSet<_> = p1_r.intersection(p2_r).cloned().collect();
+                let p_r: BTreeSet<_> = p1_r.intersection(p2_r).cloned().collect();
                 if p_r.is_empty() {
                     return None;
                 }
@@ -382,7 +382,7 @@ impl SubstringExpressionSet {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, PartialOrd, Ord)]
 enum PositionSet {
     ConstantPosition(Occurrence),
     GraphNode(Node),
@@ -392,8 +392,8 @@ use PositionSet::*;
 
 impl PositionSet {
     #[cfg(test)]
-    fn denote(&self, graph: &InputDataGraph) -> HashSet<Position> {
-        let mut set: HashSet<Position> = HashSet::new();
+    fn denote(&self, graph: &InputDataGraph) -> BTreeSet<Position> {
+        let mut set: BTreeSet<Position> = BTreeSet::new();
         match self {
             ConstantPosition(k) => {
                 set.insert(Position::ConstantPosition(*k));
@@ -519,7 +519,7 @@ mod tests {
         graph: &InputDataGraph,
         n1: Node,
         n2: Node,
-    ) -> HashSet<SubstringExpression> {
+    ) -> BTreeSet<SubstringExpression> {
         dag.substrings
             .get(&(n1, n2))
             .unwrap()

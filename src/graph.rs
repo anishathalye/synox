@@ -1,29 +1,29 @@
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::hash::Hash;
+use std::cmp::Ord;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::ops::Add;
 
 type Edge<N> = (N, N);
-type AdjacencyMap<N> = HashMap<N, HashSet<N>>;
+type AdjacencyMap<N> = BTreeMap<N, BTreeSet<N>>;
 
 pub fn adjacency_map<'a, N>(edges: impl Iterator<Item = &'a Edge<N>>) -> AdjacencyMap<N>
 where
-    N: Eq + Copy + Hash + 'a,
+    N: Eq + Copy + Ord + 'a,
 {
-    let mut adj = HashMap::new();
+    let mut adj = BTreeMap::new();
     for (v1, v2) in edges {
-        adj.entry(*v1).or_insert_with(HashSet::new).insert(*v2);
+        adj.entry(*v1).or_insert_with(BTreeSet::new).insert(*v2);
     }
     adj
 }
 
 pub fn invert_adjacency_map<N>(adj: &AdjacencyMap<N>) -> AdjacencyMap<N>
 where
-    N: Eq + Copy + Hash,
+    N: Eq + Copy + Ord,
 {
-    let mut inv = HashMap::new();
+    let mut inv = BTreeMap::new();
     for (v1, vs) in adj {
         for v2 in vs {
-            inv.entry(*v2).or_insert_with(HashSet::new).insert(*v1);
+            inv.entry(*v2).or_insert_with(BTreeSet::new).insert(*v1);
         }
     }
     inv
@@ -31,9 +31,9 @@ where
 
 pub fn topological_sort<N>(adj: &AdjacencyMap<N>) -> Vec<N>
 where
-    N: Eq + Copy + Hash,
+    N: Eq + Copy + Ord,
 {
-    let mut in_degree: HashMap<&N, usize> = HashMap::new();
+    let mut in_degree: BTreeMap<&N, usize> = BTreeMap::new();
     for (n1, ns) in adj {
         in_degree.entry(&n1).or_insert(0);
         for n2 in ns {
@@ -47,7 +47,7 @@ where
         .cloned()
         .collect();
     let mut results: Vec<N> = Vec::with_capacity(adj.len());
-    let empty = HashSet::new();
+    let empty = BTreeSet::new();
     while let Some(n) = pending.pop_front() {
         results.push(*n);
         for n2 in adj.get(n).unwrap_or(&empty) {
@@ -68,21 +68,21 @@ pub fn shortest_path_dag<N, F, C>(
     mut cost: F,
 ) -> Option<Vec<Edge<N>>>
 where
-    N: Eq + Copy + Hash,
+    N: Eq + Copy + Ord,
     F: FnMut(&N, &N) -> C,
     C: Copy + Ord + Add<Output = C>,
 {
     let inv = invert_adjacency_map(adj);
     // single-source-shortest-path, DP solution, go in topological sort order
     let topo = topological_sort(adj);
-    let index: HashMap<_, _> = topo.iter().enumerate().map(|(i, v)| (v, i)).collect();
+    let index: BTreeMap<_, _> = topo.iter().enumerate().map(|(i, v)| (v, i)).collect();
     if !index.contains_key(start) || !index.contains_key(end) {
         return None;
     }
     let mut best: Vec<Option<(C, &N)>> = Vec::with_capacity(index[end] - index[start]);
     let start_i = index[start];
     let end_i = index[end];
-    let empty = HashSet::new();
+    let empty = BTreeSet::new();
     for i in start_i + 1..end_i + 1 {
         let here = &topo[i];
         let mut best_here = None;
@@ -130,8 +130,8 @@ where
 mod tests {
     use super::*;
 
-    fn check_topo<N: Eq + Hash>(edges: &[(N, N)], sort: &[N]) -> bool {
-        let index: HashMap<_, _> = sort.iter().enumerate().map(|(i, v)| (v, i)).collect();
+    fn check_topo<N: Eq + Ord>(edges: &[(N, N)], sort: &[N]) -> bool {
+        let index: BTreeMap<_, _> = sort.iter().enumerate().map(|(i, v)| (v, i)).collect();
         for (v1, v2) in edges {
             if index[v1] > index[v2] {
                 return false;

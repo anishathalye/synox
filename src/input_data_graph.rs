@@ -2,9 +2,9 @@ use crate::graph;
 use crate::language::{Occurrence, StringIndex};
 use crate::token::{Token, ALL_RE_TOKENS};
 use std::cmp;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub struct Id {
     pub row: usize,
     pub col: usize,
@@ -22,8 +22,8 @@ type Edge = (Node, Node);
 
 #[derive(Debug)]
 pub struct InputDataGraph {
-    pub labels: HashMap<Node, HashMap<Id, StringIndex>>,
-    pub tokens: HashMap<Edge, HashSet<(Token, Occurrence)>>,
+    pub labels: BTreeMap<Node, BTreeMap<Id, StringIndex>>,
+    pub tokens: BTreeMap<Edge, BTreeSet<(Token, Occurrence)>>,
 }
 
 impl InputDataGraph {
@@ -49,8 +49,8 @@ impl InputDataGraph {
 
     fn empty() -> Self {
         Self {
-            labels: HashMap::new(),
-            tokens: HashMap::new(),
+            labels: BTreeMap::new(),
+            tokens: BTreeMap::new(),
         }
     }
 
@@ -63,22 +63,22 @@ impl InputDataGraph {
     }
 
     fn from_str(s: &str, id: Id) -> Self {
-        let mut labels = HashMap::new();
-        let mut tokens = HashMap::new();
+        let mut labels = BTreeMap::new();
+        let mut tokens = BTreeMap::new();
 
         for i in 0..s.len() + 3 {
-            let mut label = HashMap::new();
+            let mut label = BTreeMap::new();
             label.insert(id, StringIndex(i));
             labels.insert(i, label);
         }
 
-        let mut t_start = HashSet::new();
+        let mut t_start = BTreeSet::new();
         t_start.insert((Token::Start, Occurrence(1)));
         // note: we are not inserting start/end with occurrence -1, because this matches exactly
         // once in any string, so it would be redundant to include the other (they would always
         // occur together)
         tokens.insert((0, 1), t_start);
-        let mut t_end = HashSet::new();
+        let mut t_end = BTreeSet::new();
         t_end.insert((Token::End, Occurrence(1)));
         tokens.insert((s.len() + 1, s.len() + 2), t_end);
 
@@ -89,7 +89,7 @@ impl InputDataGraph {
             for (i, span) in matches.iter().enumerate() {
                 let set = tokens
                     .entry((span.start, span.end))
-                    .or_insert_with(HashSet::new);
+                    .or_insert_with(BTreeSet::new);
                 let i = i as isize;
                 set.insert((token.clone(), Occurrence(i + 1)));
                 set.insert((token.clone(), Occurrence(i - n)));
@@ -110,7 +110,7 @@ impl InputDataGraph {
                 let lit_tok_matches_n = lit_tok_matches.len() as isize;
                 for (span_idx, span) in lit_tok_matches.iter().enumerate() {
                     if span.start == i && span.end == j {
-                        let set = tokens.entry((i, j)).or_insert_with(HashSet::new);
+                        let set = tokens.entry((i, j)).or_insert_with(BTreeSet::new);
                         let span_idx = span_idx as isize;
                         set.insert((lit_tok.clone(), Occurrence(span_idx + 1)));
                         set.insert((lit_tok.clone(), Occurrence(span_idx - lit_tok_matches_n)));
@@ -134,12 +134,15 @@ impl InputDataGraph {
             })
         };
 
-        let mut tokens = HashMap::new();
+        let mut tokens = BTreeMap::new();
         let mut nodes = HashSet::new();
         for ((v1s, v1f), t1) in &self.tokens {
             for ((v2s, v2f), t2) in &other.tokens {
-                let intersection: HashSet<_> = t1.intersection(&t2).cloned().collect();
-                if !intersection.is_empty() {
+                // this is a hot spot; checking if the sets are disjoint and only allocating a
+                // BTreeSet if they are not is faster than computing the intersection first and
+                // then checking if the intersection is empty
+                if !t1.is_disjoint(&t2) {
+                    let intersection: BTreeSet<_> = t1.intersection(&t2).cloned().collect();
                     let vs = number(*v1s, *v2s);
                     nodes.insert(vs);
                     let vf = number(*v1f, *v2f);
@@ -150,13 +153,12 @@ impl InputDataGraph {
             }
         }
 
-        let mut labels = HashMap::new();
+        let mut labels = BTreeMap::new();
         for (v1, l1) in &self.labels {
             for (v2, l2) in &other.labels {
                 let v = number(*v1, *v2);
                 if nodes.contains(&v) {
-                    let mut union = HashMap::new();
-                    union.extend(l1);
+                    let mut union = l1.clone();
                     union.extend(l2);
                     labels.insert(v, union);
                 }
@@ -167,8 +169,8 @@ impl InputDataGraph {
     }
 
     fn union(graphs: impl Iterator<Item = Self>) -> Self {
-        let mut labels = HashMap::new();
-        let mut tokens = HashMap::new();
+        let mut labels = BTreeMap::new();
+        let mut tokens = BTreeMap::new();
 
         let mut curr = 0;
         for graph in graphs {
@@ -225,7 +227,7 @@ impl InputDataGraph {
         let adj = graph::adjacency_map(self.edges());
         let inv = graph::invert_adjacency_map(&adj);
         let mut topo = graph::topological_sort(&adj);
-        let empty: HashSet<Node> = HashSet::new();
+        let empty: BTreeSet<Node> = BTreeSet::new();
         // NOTE this looks different from the paper, but that is because our topological sort order
         // is the reverse of the order assumed in Figure 16
         for v in &topo {
@@ -260,7 +262,7 @@ mod tests {
         assert_eq!(graph.nodes().len(), 7);
         assert_eq!(graph.edges().len(), 12);
         // check a_12
-        let toks: HashSet<_> = vec![
+        let toks: BTreeSet<_> = vec![
             (Token::Digits, Occurrence(1)),
             (Token::Digits, Occurrence(-1)),
             (Token::Alphanumeric, Occurrence(1)),
@@ -283,7 +285,7 @@ mod tests {
         assert_eq!(graph.nodes().len(), 7);
         assert_eq!(graph.edges().len(), 12);
         // check a_45
-        let toks: HashSet<_> = vec![
+        let toks: BTreeSet<_> = vec![
             (Token::Lowercase, Occurrence(1)),
             (Token::Lowercase, Occurrence(-1)),
             (Token::Alphabets, Occurrence(1)),
@@ -310,9 +312,9 @@ mod tests {
         let graph = g1.intersection(&g2);
         assert_eq!(graph.nodes().len(), 6);
         assert_eq!(graph.edges().len(), 6);
-        let token_lengths: HashSet<_> = graph.tokens.values().map(|v| v.len()).collect();
+        let token_lengths: BTreeSet<_> = graph.tokens.values().map(|v| v.len()).collect();
         assert_eq!(token_lengths, vec![4, 1, 10, 2].iter().cloned().collect());
-        let toks: HashSet<_> = vec![
+        let toks: BTreeSet<_> = vec![
             (Token::Literal(String::from(" ")), Occurrence(1)),
             (Token::Literal(String::from(" ")), Occurrence(-1)),
             (Token::Whitespace, Occurrence(1)),
