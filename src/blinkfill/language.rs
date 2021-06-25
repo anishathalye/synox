@@ -1,20 +1,18 @@
-use crate::token::Token;
+use super::token::Token;
+use crate::private::Sealed;
+use crate::StringProgram;
 use std::fmt::Debug;
-
-type State<'a> = &'a [String];
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub struct ColumnIndex(pub usize);
 
-pub trait StringProgram: Debug {
-    fn run(&self, row: State) -> Option<String>;
-}
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct StringExpression(pub Vec<SubstringExpression>);
 
+impl Sealed for StringExpression {}
+
 impl StringProgram for StringExpression {
-    fn run(&self, row: State) -> Option<String> {
+    fn run<S: AsRef<str>>(&self, row: &[S]) -> Option<String> {
         self.0.iter().fold(Some(String::new()), |acc, e| {
             acc.and_then(|mut s| {
                 e.run(row).map(|part| {
@@ -33,17 +31,17 @@ pub enum SubstringExpression {
 }
 
 impl SubstringExpression {
-    pub fn run(&self, row: State) -> Option<String> {
+    pub fn run<S: AsRef<str>>(&self, row: &[S]) -> Option<String> {
         match self {
             SubstringExpression::ConstantString(s) => Some(s.clone()),
             SubstringExpression::Substring(ci, p_start, p_end) => {
                 let s = row.get(ci.0)?;
-                let p_start = p_start.run(s)?;
-                let p_end = p_end.run(s)?;
+                let p_start = p_start.run(s.as_ref())?;
+                let p_end = p_end.run(s.as_ref())?;
                 if p_start.0 >= p_end.0 {
                     return None;
                 }
-                Some(String::from(&s[p_start.0 - 1..p_end.0 - 1]))
+                Some(String::from(&s.as_ref()[p_start.0 - 1..p_end.0 - 1]))
             }
         }
     }

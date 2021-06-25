@@ -5,6 +5,9 @@ use std::ops::Add;
 type Edge<N> = (N, N);
 type AdjacencyMap<N> = BTreeMap<N, BTreeSet<N>>;
 
+/// Computes an adjacency map from a set of directed edges.
+///
+/// A node j is included in adj[i] if there is a directed edge from i to j.
 pub fn adjacency_map<'a, N>(edges: impl Iterator<Item = &'a Edge<N>>) -> AdjacencyMap<N>
 where
     N: Eq + Copy + Ord + 'a,
@@ -16,6 +19,7 @@ where
     adj
 }
 
+/// Computes the adjacency map for the transpose of a directed graph.
 pub fn invert_adjacency_map<N>(adj: &AdjacencyMap<N>) -> AdjacencyMap<N>
 where
     N: Eq + Copy + Ord,
@@ -29,6 +33,9 @@ where
     inv
 }
 
+/// Computes the topological sort of a directed acyclic graph.
+///
+/// The result is undefined if the graph contains cycles.
 pub fn topological_sort<N>(adj: &AdjacencyMap<N>) -> Vec<N>
 where
     N: Eq + Copy + Ord,
@@ -61,6 +68,9 @@ where
     results
 }
 
+/// Computes the shortest path between two nodes in a directed acyclic graph.
+///
+/// The result is undefined if the graph contains cycles.
 pub fn shortest_path_dag<N, F, C>(
     start: &N,
     end: &N,

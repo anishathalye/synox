@@ -1,83 +1,77 @@
-mod dag;
+//! Program synthesis of string transformations from input-output examples.
+//!
+//! This crate implements program synthesis of string transformations from input-output examples.
+//! Perhaps the most well-known use of string program synthesis in end-user programs is the [Flash
+//! Fill](https://support.microsoft.com/en-us/office/using-flash-fill-in-excel-3f9bcf1e-db93-4890-94a0-1578341f73f7)
+//! feature in Excel. These string transformations are learned from input-output examples. In some
+//! cases, extra unpaired input examples can be used to improve results even when the outputs
+//! corresponding to those examples are not available.
+//!
+//! String programs take a row of columns (strings) and produce a single string as an output. For
+//! example, a string program can capture the transformation demonstrated in the following table:
+//!
+//! | Name | Graduation Year | Output |
+//! |---|---|---|
+//! | Alyssa P. Hacker | 1985 | A. Hacker '85 |
+//! | Ben Bitdiddle | 2002 | B. Bitdiddle '02 |
+//! | Cy D. Fect | 2017 | ? |
+//!
+//! The following example shows how to use the [blinkfill] module to learn a program that learns
+//! the above transformation and apply it to an example with unknown output (the last row in the
+//! table).
+//!
+//! ```
+//! use synox::StringProgram;
+//! use synox::blinkfill;
+//!
+//! # fn main() -> Result<(), ()> {
+//! #   assert_eq!(example(), Some(()));
+//! #   Ok(())
+//! # }
+//! # fn example() -> Option<()> {
+//! // no unpaired examples
+//! let unpaired: &[Vec<&str>] = &[];
+//! // two paired examples, demonstrating a diversity of inputs (one including a middle initial)
+//! let examples = &[(vec!["Alyssa P. Hacker", "1985"], "A. Hacker '85"   ),
+//!                  (vec!["Ben Bitdiddle",    "2002"], "B. Bitdiddle '02")];
+//!
+//! // learn a program based on input-output examples
+//! //
+//! // blinkfill::learn returns an Option because it may fail to learn a program that matches all
+//! // the examples
+//! let prog = blinkfill::learn(unpaired, examples)?;
+//!
+//! // StringProgram::run returns an Option because the program may fail on a particular input
+//! let result = prog.run(&["Cy D. Fect", "2017"])?;
+//! assert_eq!(result, "C. Fect '17");
+//! # Some(())
+//! # }
+//! ```
+//!
+//! To handle multiple output columns, you can infer separate string programs, one for each output
+//! column.
+
+#![doc(html_root_url = "https://docs.rs/synox/0.1.0")]
+#![warn(missing_docs)]
+
+pub mod blinkfill;
 mod graph;
-mod input_data_graph;
-mod language;
-mod token;
 
-use dag::Dag;
-use input_data_graph::InputDataGraph;
-pub use language::StringProgram;
-
-pub fn learn(
-    unpaired: &[Vec<String>],
-    examples: &[(Vec<String>, String)],
-) -> Option<impl StringProgram> {
-    // NOTE we construct all_unpaired here rather than having the caller pass it in, so we can
-    // enforce the precondition of Dag::learn that the indices of the examples correspond to the
-    // indices used in constructing the graph (so all unpaired has to be examples concatenated with
-    // the unpaired, in that order)
-    let all_unpaired: Vec<_> = examples
-        .iter()
-        .map(|(row, _)| row)
-        .chain(unpaired.iter())
-        .cloned()
-        .collect();
-    let graph = InputDataGraph::new(&all_unpaired);
-    let dag = Dag::learn(examples, &graph);
-    dag.top_ranked_expression(&graph)
+/// A program that transforms a list of strings into a string.
+///
+/// This trait is sealed and not meant to be implemented outside this crate.
+pub trait StringProgram: private::Sealed {
+    /// Runs the program on the given list of strings.
+    ///
+    /// The string program might error on a particular input. For example, if the string program is
+    /// extracting the third word in a column, but the column has only two words, this will result
+    /// in an error. In case of an error, this function returns `None`. String programs do not
+    /// return a more expressive error type because the programs are not manually written but
+    /// inferred from input-output examples, so reporting details of errors in the auto-generated
+    /// programs is unlikely to be useful to the end-user.
+    fn run<S: AsRef<str>>(&self, row: &[S]) -> Option<String>;
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn end_to_end() {
-        let data = vec![
-            vec![
-                "1",
-                "The Expanse S01E01 1080p HDTV x264-BRISK",
-                "The Expanse S01E01 (1080p)",
-            ],
-            vec!["2", "The Expanse S03E02 720p HDTV x264-SVA", ""],
-            vec!["3", "The Expanse S03E03 720p HDTV x264-FLEET", ""],
-            vec!["4", "The Expanse S01E04 1080p HDTV x264-BRISK", ""],
-            vec!["5", "The Expanse S02E04 720p HDTV x264-SVA", ""],
-            vec!["6", "The Expanse S01E05 720p HDTV x264-KILLERS", ""],
-            vec![
-                "7",
-                "The Expanse S01E06 INTERNAL 720p HDTV x264-KILLERS",
-                "The Expanse S01E06 (720p)",
-            ],
-            vec!["8", "The Expanse S03E07 PROPER 2160p HDTV x264-AVS", ""],
-            vec!["9", "The Expanse S03E08 REPACK 720p HDTV x264-LucidTV", ""],
-            vec!["10", "The Expanse S03E09 REPACK 720p HDTV x264-LucidTV", ""],
-            vec!["11", "The Expanse S03E10 REPACK 720p HDTV x264-LucidTV", ""],
-            vec!["12", "The Expanse S03E11 REPACK 720p HDTV x264-LucidTV", ""],
-            vec!["13", "The Expanse S03E12 REPACK 720p HDTV x264-LucidTV", ""],
-            vec!["14", "The Expanse S03E13 REPACK 720p HDTV x264-LucidTV", ""],
-        ];
-        let unpaired: Vec<Vec<String>> = data
-            .iter()
-            .filter(|row| row[row.len() - 1] == "")
-            .map(|row| {
-                let mut row: Vec<String> = row.iter().map(|s| String::from(*s)).collect();
-                row.pop();
-                row
-            })
-            .collect();
-        let examples: Vec<(Vec<String>, String)> = data
-            .iter()
-            .filter(|row| row[row.len() - 1] != "")
-            .map(|row| {
-                let mut row: Vec<String> = row.iter().map(|s| String::from(*s)).collect();
-                let last = row.pop().unwrap();
-                (row, last)
-            })
-            .collect();
-        let prog = learn(&unpaired, &examples).unwrap();
-        let results: Vec<_> = unpaired.iter().map(|row| prog.run(row).unwrap()).collect();
-        assert_eq!(results[0], "The Expanse S03E02 (720p)");
-        assert_eq!(results[5], "The Expanse S03E07 (2160p)");
-    }
+mod private {
+    pub trait Sealed {}
 }

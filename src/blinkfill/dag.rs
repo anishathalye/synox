@@ -1,9 +1,9 @@
-use crate::graph;
-use crate::input_data_graph::{Id, InputDataGraph};
-use crate::language::{
-    ColumnIndex, Direction, Occurrence, Position, StringExpression, StringIndex, StringProgram,
+use super::input_data_graph::{Id, InputDataGraph};
+use super::language::{
+    ColumnIndex, Direction, Occurrence, Position, StringExpression, StringIndex,
     SubstringExpression,
 };
+use crate::graph;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 const EPSILON: usize = 1;
@@ -21,7 +21,7 @@ pub struct Dag {
 }
 
 impl Dag {
-    fn new(input: &[String], output: &str, graph: &InputDataGraph, row: usize) -> Self {
+    fn new(input: &[&str], output: &str, graph: &InputDataGraph, row: usize) -> Self {
         let mut substrings = BTreeMap::new();
         let n = output.len();
 
@@ -105,7 +105,7 @@ impl Dag {
         }
     }
 
-    pub fn learn(paired: &[(Vec<String>, String)], graph: &InputDataGraph) -> Self {
+    pub fn learn(paired: &[(Vec<&str>, &str)], graph: &InputDataGraph) -> Self {
         paired
             .iter()
             .enumerate()
@@ -119,7 +119,7 @@ impl Dag {
             .unwrap()
     }
 
-    pub fn top_ranked_expression(&self, graph: &InputDataGraph) -> Option<impl StringProgram> {
+    pub fn top_ranked_expression(&self, graph: &InputDataGraph) -> Option<StringExpression> {
         let distances = graph.distances();
         let ranks = graph.rank_nodes(&distances);
         let mut best_by_edge: BTreeMap<Edge, (usize, SubstringExpression)> = BTreeMap::new();
@@ -419,19 +419,20 @@ impl PositionSet {
 
 #[cfg(test)]
 mod tests {
+    use super::super::token::Token;
     use super::*;
-    use crate::token::Token;
+    use crate::StringProgram;
 
     #[test]
     fn generate_substring_set() {
         // generate the graph from BlinkFill Fig. 14
         let strs = vec![
-            vec![String::from("Mumbai, India")],
-            vec![String::from("Los Angeles, United States of America")],
-            vec![String::from("Newark, United States")],
-            vec![String::from("New York, United States of America")],
-            vec![String::from("Wellington, New Zealand")],
-            vec![String::from("New Delhi, India")],
+            vec!["Mumbai, India"],
+            vec!["Los Angeles, United States of America"],
+            vec!["Newark, United States"],
+            vec!["New York, United States of America"],
+            vec!["Wellington, New Zealand"],
+            vec!["New Delhi, India"],
         ];
         let graph = InputDataGraph::new(&strs);
         // find the substring expression set that generates "India" from the 1st string
@@ -482,7 +483,7 @@ mod tests {
 
         // make sure all the string programs generate the right string
         for prog in sub_denote {
-            let output = prog.run(&vec![String::from("Mumbai, India")]);
+            let output = prog.run(&vec!["Mumbai, India"]);
             assert_eq!(output.unwrap(), "India");
         }
     }
@@ -490,10 +491,7 @@ mod tests {
     #[test]
     fn generate_substring_set_single() {
         // similar to the negated case from above, with a different graph, should appear
-        let strs = vec![
-            vec![String::from("Shrewsbury, MA")],
-            vec![String::from("Shrewsbury, United Kingdom")],
-        ];
+        let strs = vec![vec!["Shrewsbury, MA"], vec!["Shrewsbury, United Kingdom"]];
         let graph = InputDataGraph::new(&strs);
         // find the substring expression set that generates "MA" from the 1st string
         let sub = SubstringExpressionSet::generate_substring_set(
@@ -531,12 +529,12 @@ mod tests {
     #[test]
     fn generate_dag() {
         let strs = vec![
-            vec![String::from("Mumbai, India")],
-            vec![String::from("Los Angeles, United States of America")],
-            vec![String::from("Newark, United States")],
-            vec![String::from("New York, United States of America")],
-            vec![String::from("Wellington, New Zealand")],
-            vec![String::from("New Delhi, India")],
+            vec!["Mumbai, India"],
+            vec!["Los Angeles, United States of America"],
+            vec!["Newark, United States"],
+            vec!["New York, United States of America"],
+            vec!["Wellington, New Zealand"],
+            vec!["New Delhi, India"],
         ];
         let graph = InputDataGraph::new(&strs);
         let dag = Dag::new(&strs[0], "India", &graph, 0);
@@ -562,17 +560,17 @@ mod tests {
     #[test]
     fn learn() {
         let strs = vec![
-            vec![String::from("Mumbai, India")],
-            vec![String::from("Los Angeles, United States of America")],
-            vec![String::from("Newark, United States")],
-            vec![String::from("New York, United States of America")],
-            vec![String::from("Wellington, New Zealand")],
-            vec![String::from("New Delhi, India")],
+            vec!["Mumbai, India"],
+            vec!["Los Angeles, United States of America"],
+            vec!["Newark, United States"],
+            vec!["New York, United States of America"],
+            vec!["Wellington, New Zealand"],
+            vec!["New Delhi, India"],
         ];
         let graph = InputDataGraph::new(&strs);
         let examples = vec![
-            (strs[0].clone(), String::from("India")),
-            (strs[1].clone(), String::from("United States of America")),
+            (strs[0].clone(), "India"),
+            (strs[1].clone(), "United States of America"),
         ];
         let dag = Dag::learn(&examples, &graph);
         // check all expressions that extract output in one go
@@ -613,15 +611,15 @@ mod tests {
     #[test]
     fn learn_2() {
         let strs = vec![
-            vec![String::from("323-708-7700")],
-            vec![String::from("(425).706.7709")],
-            vec![String::from("510.220.5586")],
-            vec![String::from("(471)-378-3829")],
+            vec!["323-708-7700"],
+            vec!["(425).706.7709"],
+            vec!["510.220.5586"],
+            vec!["(471)-378-3829"],
         ];
         let graph = InputDataGraph::new(&strs);
         let examples = vec![
-            (strs[0].clone(), String::from("323-708-7700")),
-            (strs[1].clone(), String::from("425-706-7709")),
+            (strs[0].clone(), "323-708-7700"),
+            (strs[1].clone(), "425-706-7709"),
         ];
         let dag = Dag::learn(&examples, &graph);
         let best = dag.top_ranked_expression(&graph).unwrap();
@@ -634,17 +632,14 @@ mod tests {
     #[test]
     fn learn_3() {
         let strs = vec![
-            vec![String::from("Brandon Henry Saunders")],
-            vec![String::from("Dafna Q. Chen")],
-            vec![String::from("William Lee")],
-            vec![String::from("Danelle D. Saunders")],
-            vec![String::from("Emilio William Conception")],
+            vec!["Brandon Henry Saunders"],
+            vec!["Dafna Q. Chen"],
+            vec!["William Lee"],
+            vec!["Danelle D. Saunders"],
+            vec!["Emilio William Conception"],
         ];
         let graph = InputDataGraph::new(&strs);
-        let examples = vec![
-            (strs[0].clone(), String::from("B.S.")),
-            (strs[1].clone(), String::from("D.C.")),
-        ];
+        let examples = vec![(strs[0].clone(), "B.S."), (strs[1].clone(), "D.C.")];
         let dag = Dag::learn(&examples, &graph);
         let best = dag.top_ranked_expression(&graph).unwrap();
         let expected = vec!["W.L.", "D.S.", "E.C."];
@@ -656,12 +651,12 @@ mod tests {
     #[test]
     fn learn_4() {
         let strs = vec![
-            vec![String::from("GOPR0365.MP4.mp4")],
-            vec![String::from("GOPR0411.MP4.mp4")],
-            vec![String::from("GOPR0329.MP4.mp4")],
+            vec!["GOPR0365.MP4.mp4"],
+            vec!["GOPR0411.MP4.mp4"],
+            vec!["GOPR0329.MP4.mp4"],
         ];
         let graph = InputDataGraph::new(&strs);
-        let examples = vec![(strs[0].clone(), String::from("GOPR0365.mp4"))];
+        let examples = vec![(strs[0].clone(), "GOPR0365.mp4")];
         let dag = Dag::learn(&examples, &graph);
         let best = dag.top_ranked_expression(&graph).unwrap();
         let expected = vec!["GOPR0411.mp4", "GOPR0329.mp4"];
@@ -673,14 +668,14 @@ mod tests {
     #[test]
     fn learn_5() {
         let strs = vec![
-            vec![String::from("IMG_3246.JPG")],
-            vec![String::from("GOPR0411.MP4")],
-            vec![String::from("DSC_0324.jpg")],
-            vec![String::from("DSC0324.jpg")],
-            vec![String::from("RD392.HEIC")],
+            vec!["IMG_3246.JPG"],
+            vec!["GOPR0411.MP4"],
+            vec!["DSC_0324.jpg"],
+            vec!["DSC0324.jpg"],
+            vec!["RD392.HEIC"],
         ];
         let graph = InputDataGraph::new(&strs);
-        let examples = vec![(strs[0].clone(), String::from("IMG_3246"))];
+        let examples = vec![(strs[0].clone(), "IMG_3246")];
         let dag = Dag::learn(&examples, &graph);
         let best = dag.top_ranked_expression(&graph).unwrap();
         let expected = vec!["GOPR0411", "DSC_0324", "DSC0324", "RD392"];
@@ -692,16 +687,16 @@ mod tests {
     #[test]
     fn learn_multi_column() {
         let strs = vec![
-            vec![String::from("1"), String::from("IMG_3246.JPG")],
-            vec![String::from("2"), String::from("GOPR0411.MP4")],
-            vec![String::from("3"), String::from("DSC_0324.jpg")],
-            vec![String::from("4"), String::from("DSC0324.jpg")],
-            vec![String::from("5"), String::from("RD392.HEIC")],
+            vec!["1", "IMG_3246.JPG"],
+            vec!["2", "GOPR0411.MP4"],
+            vec!["3", "DSC_0324.jpg"],
+            vec!["4", "DSC0324.jpg"],
+            vec!["5", "RD392.HEIC"],
         ];
         let graph = InputDataGraph::new(&strs);
         let examples = vec![
-            (strs[0].clone(), String::from("1_IMG_3246")),
-            (strs[1].clone(), String::from("2_GOPR0411")),
+            (strs[0].clone(), "1_IMG_3246"),
+            (strs[1].clone(), "2_GOPR0411"),
         ];
         let dag = Dag::learn(&examples, &graph);
         let best = dag.top_ranked_expression(&graph).unwrap();

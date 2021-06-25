@@ -1,6 +1,6 @@
+use super::language::{Occurrence, StringIndex};
+use super::token::{Token, ALL_RE_TOKENS};
 use crate::graph;
-use crate::language::{Occurrence, StringIndex};
-use crate::token::{Token, ALL_RE_TOKENS};
 use std::cmp;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
@@ -28,7 +28,7 @@ pub struct InputDataGraph {
 
 impl InputDataGraph {
     // Requires strs to be non-jagged
-    pub fn new(strs: &[Vec<String>]) -> Self {
+    pub fn new(strs: &[Vec<&str>]) -> Self {
         let rows = strs.len();
         if rows == 0 {
             return Self::empty();
@@ -36,7 +36,7 @@ impl InputDataGraph {
         let cols = strs[0].len();
         Self::union((0..cols).map(|col| {
             (0..rows)
-                .map(|row| Self::from_str(strs[row][col].as_str(), Id { row, col }))
+                .map(|row| Self::from_str(strs[row][col], Id { row, col }))
                 .fold(None, |acc, x| -> Option<Self> {
                     match acc {
                         Some(acc) => Some(acc.intersection(&x)),
@@ -338,7 +338,7 @@ mod tests {
 
     #[test]
     fn new_single_column() {
-        let strs = vec![vec![String::from("1 lb")], vec![String::from("23 g")]];
+        let strs = vec![vec!["1 lb"], vec!["23 g"]];
         let graph = InputDataGraph::new(&strs);
         assert_eq!(graph.nodes().len(), 6);
         assert_eq!(graph.edges().len(), 6);
@@ -346,10 +346,7 @@ mod tests {
 
     #[test]
     fn new_multi_column() {
-        let strs = vec![
-            vec![String::from("1 lb"), String::from("1 lb")],
-            vec![String::from("1 lb"), String::from("23 g")],
-        ];
+        let strs = vec![vec!["1 lb", "1 lb"], vec!["1 lb", "23 g"]];
         let graph = InputDataGraph::new(&strs);
         assert_eq!(graph.nodes().len(), 7 + 6);
         assert_eq!(graph.edges().len(), 12 + 6);

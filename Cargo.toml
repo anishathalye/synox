@@ -1,10 +1,21 @@
 [package]
-name = "delphi"
+name = "synox"
 version = "0.1.0"
 authors = ["Anish Athalye <me@anishathalye.com>"]
 edition = "2018"
-publish = false
+license = "MIT"
+
+readme = "README.md"
+description = "Program synthesis of string transformations from input-output examples."
+repository = "https://github.com/anishathalye/synox.git"
+homepage = "https://github.com/anishathalye/synox"
+
+keywords = ["program-synthesis"]
+categories = ["compilers", "text-processing"]
 
 [dependencies]
-regex = "1"
+regex = "1.5"
 lazy_static = "1.4.0"
+
+[dev-dependencies]
+version-sync = "0.9"
