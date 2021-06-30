@@ -35,13 +35,13 @@ impl SubstringExpression {
         match self {
             SubstringExpression::ConstantString(s) => Some(s.clone()),
             SubstringExpression::Substring(ci, p_start, p_end) => {
-                let s = row.get(ci.0)?;
-                let p_start = p_start.run(s.as_ref())?;
-                let p_end = p_end.run(s.as_ref())?;
+                let s = row.get(ci.0)?.as_ref();
+                let p_start = p_start.run(s)?;
+                let p_end = p_end.run(s)?;
                 if p_start.0 >= p_end.0 {
                     return None;
                 }
-                Some(String::from(&s.as_ref()[p_start.0 - 1..p_end.0 - 1]))
+                Some(String::from(&s[p_start.0 - 1..p_end.0 - 1]))
             }
         }
     }
