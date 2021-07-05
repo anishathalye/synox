@@ -170,4 +170,54 @@ mod tests {
         assert_eq!(results[0], "The Expanse S03E02 (720p)");
         assert_eq!(results[5], "The Expanse S03E07 (2160p)");
     }
+
+    #[test]
+    fn end_to_end_2() {
+        let examples = vec![
+            (
+                vec!["Barcelona_January_2016-DSC02368.JPG"],
+                "2016/January/Barcelona/DSC02368.JPG",
+            ),
+            (
+                vec!["Smuggler's Notch_February_2017-GOPR0238.mp4"],
+                "2017/February/Smuggler's Notch/GOPR0238.mp4",
+            ),
+        ];
+        let unpaired = vec![
+            vec!["Barcelona_January_2016-DSC04239.JPG"],
+            vec!["Barcelona_January_2016-IMG_4728.MOV"],
+            vec!["Barcelona_January_2016-IMG_4669.JPG"],
+            vec!["Smuggler's Notch_February_2017-DSC02558.JPG"],
+            vec!["Jay Peak_January_2019-GOPR0328.MP4"],
+            vec!["Jay Peak_January_2019-IMG_3669.mov"],
+            vec!["Jay Peak_January_2019-DSC0268.jpg"],
+            vec!["Inyo National Forest_August_2019-DSC3583.jpg"],
+            vec!["Inyo National Forest_August_2019-IMG_2456.HEIC"],
+            vec!["Inyo National Forest_August_2019-IMG_2458.MOV"],
+            vec!["Prague_August_2021-IMG_2618.JPG"],
+            vec!["Prague_August_2021-DSC01809.JPG"],
+            vec!["Prague_August_2021-DSC01952.JPG"],
+            vec!["Prague_August_2021-IMG_2618.JPG"],
+        ];
+        let prog = learn(&unpaired, &examples).unwrap();
+        let expected = vec![
+            "2016/January/Barcelona/DSC04239.JPG",
+            "2016/January/Barcelona/IMG_4728.MOV",
+            "2016/January/Barcelona/IMG_4669.JPG",
+            "2017/February/Smuggler's Notch/DSC02558.JPG",
+            "2019/January/Jay Peak/GOPR0328.MP4",
+            "2019/January/Jay Peak/IMG_3669.mov",
+            "2019/January/Jay Peak/DSC0268.jpg",
+            "2019/August/Inyo National Forest/DSC3583.jpg",
+            "2019/August/Inyo National Forest/IMG_2456.HEIC",
+            "2019/August/Inyo National Forest/IMG_2458.MOV",
+            "2021/August/Prague/IMG_2618.JPG",
+            "2021/August/Prague/DSC01809.JPG",
+            "2021/August/Prague/DSC01952.JPG",
+            "2021/August/Prague/IMG_2618.JPG",
+        ];
+        for (i, input) in unpaired.iter().enumerate() {
+            assert_eq!(prog.run(input).unwrap(), expected[i]);
+        }
+    }
 }
