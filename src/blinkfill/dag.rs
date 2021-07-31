@@ -45,9 +45,7 @@ impl Dag {
                                 let r = l + s.len();
                                 let (l, r) = (StringIndex(l + 1), StringIndex(r + 1));
                                 let substring_exprs =
-                                    SubstringExpressionSet::generate_substring_set(
-                                        id, l, r, &graph,
-                                    );
+                                    SubstringExpressionSet::generate_substring_set(id, l, r, graph);
                                 exprs.push(substring_exprs);
                                 offset = offset + start + 1;
                             }
@@ -86,7 +84,7 @@ impl Dag {
                 let mut exprs = vec![];
                 for e1 in s1 {
                     for e2 in s2 {
-                        if let Some(e) = e1.intersection(&e2) {
+                        if let Some(e) = e1.intersection(e2) {
                             exprs.push(e);
                         }
                     }
@@ -109,7 +107,7 @@ impl Dag {
         paired
             .iter()
             .enumerate()
-            .map(|(row, (input, output))| Self::new(&input, output, &graph, row))
+            .map(|(row, (input, output))| Self::new(input, output, graph, row))
             .fold(None, |acc, x| -> Option<Self> {
                 match acc {
                     Some(acc) => Some(acc.intersection(&x)),
@@ -141,7 +139,7 @@ impl Dag {
                         let key = |p: &'_ &PositionSet| -> usize {
                             match p {
                                 ConstantPosition(_) => 0,
-                                GraphNode(v) => ranks[&v],
+                                GraphNode(v) => ranks[v],
                             }
                         };
                         let p_l = p_l.iter().max_by_key(key).unwrap();

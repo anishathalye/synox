@@ -42,9 +42,9 @@ where
 {
     let mut in_degree: BTreeMap<&N, usize> = BTreeMap::new();
     for (n1, ns) in adj {
-        in_degree.entry(&n1).or_insert(0);
+        in_degree.entry(n1).or_insert(0);
         for n2 in ns {
-            *in_degree.entry(&n2).or_insert(0) += 1;
+            *in_degree.entry(n2).or_insert(0) += 1;
         }
     }
     let mut pending: VecDeque<&N> = in_degree
@@ -103,7 +103,7 @@ where
         // check all other predecessors in topological order
         for j in start_i + 1..i {
             let intermediate = &topo[j];
-            if inv.get(here).unwrap_or(&empty).contains(&intermediate) {
+            if inv.get(here).unwrap_or(&empty).contains(intermediate) {
                 if let Some((c, _)) = best[j - start_i - 1] {
                     let jump_cost = c + cost(intermediate, here);
                     match best_here {

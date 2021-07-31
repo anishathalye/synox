@@ -141,8 +141,8 @@ impl InputDataGraph {
                 // this is a hot spot; checking if the sets are disjoint and only allocating a
                 // BTreeSet if they are not is faster than computing the intersection first and
                 // then checking if the intersection is empty
-                if !t1.is_disjoint(&t2) {
-                    let intersection: BTreeSet<_> = t1.intersection(&t2).cloned().collect();
+                if !t1.is_disjoint(t2) {
+                    let intersection: BTreeSet<_> = t1.intersection(t2).cloned().collect();
                     let vs = number(*v1s, *v2s);
                     nodes.insert(vs);
                     let vf = number(*v1f, *v2f);
@@ -231,14 +231,14 @@ impl InputDataGraph {
         // NOTE this looks different from the paper, but that is because our topological sort order
         // is the reverse of the order assumed in Figure 16
         for v in &topo {
-            for vi in inv.get(&v).unwrap_or(&empty) {
-                v_in.insert(*v, cmp::max(v_in[&v], v_in[&vi] + distances[&(*vi, *v)]));
+            for vi in inv.get(v).unwrap_or(&empty) {
+                v_in.insert(*v, cmp::max(v_in[v], v_in[vi] + distances[&(*vi, *v)]));
             }
         }
         topo.reverse();
         for v in &topo {
-            for vi in adj.get(&v).unwrap_or(&empty) {
-                v_out.insert(*v, cmp::max(v_out[&v], v_out[&vi] + distances[&(*v, *vi)]));
+            for vi in adj.get(v).unwrap_or(&empty) {
+                v_out.insert(*v, cmp::max(v_out[v], v_out[vi] + distances[&(*v, *vi)]));
             }
         }
         // total the score in v_out (instead of allocating a separate hash map)
