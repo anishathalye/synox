@@ -98,10 +98,9 @@ where
     // enforce the precondition of Dag::learn that the indices of the examples correspond to the
     // indices used in constructing the graph (so all unpaired has to be examples concatenated with
     // the unpaired, in that order)
-    let unpaired: Vec<Vec<&str>> = unpaired
+    let unpaired = unpaired
         .iter()
-        .map(|row| row.iter().map(|x| x.as_ref()).collect())
-        .collect();
+        .map(|row| row.iter().map(|x| x.as_ref()).collect());
     let examples: Vec<(Vec<&str>, &str)> = examples
         .iter()
         .map(|(row, output)| (row.iter().map(|x| x.as_ref()).collect(), output.as_ref()))
