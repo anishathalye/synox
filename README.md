@@ -47,7 +47,7 @@ assert_eq!(result, "C. Fect '17");
 
 ## License
 
-Copyright (c) 2021 Anish Athalye. Released under the MIT License. See
+Copyright (c) Anish Athalye. Released under the MIT License. See
 [LICENSE.md](LICENSE.md) for details.
 
 [blinkfill]: http://www.vldb.org/pvldb/vol9/p816-singh.pdf
