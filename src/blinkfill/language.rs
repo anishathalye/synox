@@ -13,12 +13,10 @@ impl Sealed for StringExpression {}
 
 impl StringProgram for StringExpression {
     fn run<S: AsRef<str>>(&self, row: &[S]) -> Option<String> {
-        self.0.iter().fold(Some(String::new()), |acc, e| {
-            acc.and_then(|mut s| {
-                e.run(row).map(|part| {
-                    s.push_str(&part);
-                    s
-                })
+        self.0.iter().try_fold(String::new(), |mut s, e| {
+            e.run(row).map(|part| {
+                s.push_str(&part);
+                s
             })
         })
     }

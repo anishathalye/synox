@@ -109,7 +109,7 @@ where
         .clone()
         .into_iter()
         .map(|(row, _)| row)
-        .chain(unpaired.into_iter())
+        .chain(unpaired)
         .collect();
     let graph = InputDataGraph::new(&all_unpaired);
     let dag = Dag::learn(&examples, &graph);

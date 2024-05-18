@@ -123,9 +123,7 @@ where
     }
     // reconstruct the actual path
     let mut path = Vec::new();
-    if best[best.len() - 1] == None {
-        return None;
-    }
+    best[best.len() - 1]?;
     let mut curr_i = end_i;
     while curr_i != start_i {
         let prev = best[curr_i - start_i - 1].unwrap().1;

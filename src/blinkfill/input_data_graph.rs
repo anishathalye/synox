@@ -208,7 +208,7 @@ impl InputDataGraph {
                         // to be used
                         ((self.labels[v2].get(id).unwrap_or(index1).0 as isize)
                             - (index1.0 as isize))
-                            .abs() as usize
+                            .unsigned_abs()
                     })
                     .sum();
                 result.insert((*v1, *v2), dist);

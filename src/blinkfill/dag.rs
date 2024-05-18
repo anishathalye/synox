@@ -36,7 +36,7 @@ impl Dag {
                     let id = Id { row, col: ci };
                     let mut offset = 0;
                     while offset < input_str.len() {
-                        match input_str[offset..].find(&s) {
+                        match input_str[offset..].find(s) {
                             None => {
                                 break;
                             }
@@ -170,7 +170,7 @@ impl Dag {
                                             if let Some(toks) = graph.tokens.get(&(*vs, *v)) {
                                                 for (tok, occ) in toks {
                                                     let weight = (tok.weight(), occ.weight());
-                                                    if best == None || weight > best_weight {
+                                                    if best.is_none() || weight > best_weight {
                                                         best_weight = weight;
                                                         best = Some(Position::Match(
                                                             tok.clone(),
@@ -188,7 +188,7 @@ impl Dag {
                                             if let Some(toks) = graph.tokens.get(&(*v, *vf)) {
                                                 for (tok, occ) in toks {
                                                     let weight = (tok.weight(), occ.weight());
-                                                    if best == None || weight > best_weight {
+                                                    if best.is_none() || weight > best_weight {
                                                         best_weight = weight;
                                                         best = Some(Position::Match(
                                                             tok.clone(),
@@ -281,7 +281,7 @@ impl Dag {
                     }
                 }
                 if let Some(expr) = expr {
-                    if best == None || score > best_score {
+                    if best.is_none() || score > best_score {
                         best = Some(expr);
                         best_score = score;
                     }
