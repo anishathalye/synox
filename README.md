@@ -1,4 +1,4 @@
-# Synox [![Build Status](https://github.com/anishathalye/synox/workflows/CI/badge.svg)](https://github.com/anishathalye/synox/actions?query=workflow%3ACI) [![Crates.io](https://img.shields.io/crates/v/synox.svg)](https://crates.io/crates/synox) [![Documentation](https://docs.rs/synox/badge.svg)](https://docs.rs/synox)
+# Synox [![Build Status](https://github.com/anishathalye/synox/actions/workflows/ci.yml/badge.svg)](https://github.com/anishathalye/synox/actions/workflows/ci.yml) [![Crates.io](https://img.shields.io/crates/v/synox.svg)](https://crates.io/crates/synox) [![Documentation](https://docs.rs/synox/badge.svg)](https://docs.rs/synox)
 
 Synox implements program synthesis of string transformations from input-output
 examples. Perhaps the most well-known use of string program synthesis in
